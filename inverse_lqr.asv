@@ -1,57 +1,26 @@
-%Inverse LQR Control
+% % Inverse LQR Control
+clc;clear all; close all;
 A = [2, -2; 1, 0];
 B = [1; 1];
 Q = 5*eye(2);
 R = 2*eye(1);
+xo = [0.5; 0];
+C=eye(2);
+K=-lqr(A,B,Q,R); % let say we know this K before then we need to get that same Q and R
+clear Q R;
+% using yalmip package
 n = size(A,1);%degrees of freedom
 m = size(B,2);%control inputs
-
-xo = [0.5; 0];
-xf= [1;0];
-
-C=eye(2);D=[0;0];
-
-states = {'x' 'x_dot'};
-inputs = {'u'};
-outputs = {'x'; 'x_dot'};
-%system statespace
-sys_ss = ss(A,B,C,D,'statename',states,'inputname',inputs,'outputname',outputs);
-
-%check controlability
-co = ctrb(sys_ss);
-controllability = rank(co);
-
-if(controllability==n)
-    disp('system is controllable');
-else
-    disp('system is not controllable');
-end
-syms a b c d;
-P=[a b ; c d];
-M=transpose(A)*P+P*A-(P*B*(R^-1)*transpose(B)*P)+Q;
-sol=solve(M(:));
-P=zeros([size(P),size(sol.a,1)]);
-
-
-%gain matrix solving inverse lqr formula
-K = -(R^-1)*transpose(B)*P;
-% K=lqr(A,B,Q,R);
-
-Ac = [(A-B*K)];
-Bc = [B];
-Cc = [C];
-Dc = [D];
-
-%system control
-sys_cl = ss(Ac,Bc,Cc,Dc,'statename',states,'inputname',inputs,'outputname',outputs);
-
-t = 0:0.01:5;
-u =-1*ones(size(t));
-[y,t,x]=lsim(sys_cl,u,t,xo);
-[AX,H1,H2] = plotyy(t,y(:,1),t,y(:,2),'plot');
-set(get(AX(1),'Ylabel'),'String','x1')
-set(get(AX(2),'Ylabel'),'String','x2')
-title('Step Response with LQR Control')
-
-
-
+Q=sdpvar(n,n,'full'); R=sdpvar(m,m,'full') ;P=sdpvar(n,n,'full') ;P1=sdpvar(n,n,'full') ;a=sdpvar(1,1,'full');
+c1=[transpose(A)*P+P*A+(P*B*K)+Q==0];
+c2=[transpose(A+B*K)*P+P*(A+B*K)+transpose(K)*R*K+Q==0];
+c3=[transpose(B)*P+R*K==0];
+c4=[transpose(A)*P1+P1*transpose(A)<Q];
+c5=[eye(m+n)<=[[Q zeros(n,m)];[zeros(m,n) R]]<=a.*eye(m+n)];
+constraints=[c1,c2,c3,c4,c5];
+optimize(constraints,a^2)
+Q=value(Q)
+R=value(R)
+P=value(P)
+k=-lqr(A,B,Q,R) % output of inverse Q R 
+K
