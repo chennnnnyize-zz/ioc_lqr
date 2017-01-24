@@ -2,12 +2,12 @@
 clc;clear all; close all;
 A = [2, -2; 1, 0];
 B = [1; 1];
-Q = 5*eye(2);
-R = 2*eye(1);
-xo = [0.5; 0];
-C=eye(2);
 n = size(A,1);%degrees of freedom
 m = size(B,2);%control inputs
+Q = 5*eye(n);
+R = 2*eye(m);
+xo = [0.5; 0];
+C=eye(2);
 %check controlability
 if(rank(ctrb(A,B))==n)
     disp('system is controllable');
